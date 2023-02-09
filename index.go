@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,55 +20,79 @@ const (
 )
 
 // piece represents data about a record piece.
-type piece struct {
-	ID       string `json:"id"`
+type Piece struct {
+	ID       int64  `json:"id"`
 	Title    string `json:"title"`
 	Artist   string `json:"artist"`
 	Category string `json:"category"`
 }
 
-// pieces slice to seed record piece data.
-var pieces = []piece{
-	{ID: "1", Title: "Ice Cream Bowls", Artist: "LeeAnn Vaughan", Category: "Ceramic"},
-	{ID: "2", Title: "Mt. Shasta", Artist: "Ashley Rosenbaum", Category: "Water Color"},
-	{ID: "3", Title: "Mt. St. Helens", Artist: "Ashley Rosenbaum", Category: "Water Color"},
-}
-
 // getpieces responds with the list of all pieces as JSON.
-func getPieces(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, pieces)
+func getPieces(db *sql.DB) ([]Piece, error) {
+	rows, err := db.Query("SELECT * FROM piece")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pieces []Piece
+	for rows.Next() {
+		var piece Piece
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Category)
+		if err != nil {
+			log.Fatalf("Error scanning result: %v", err)
+		}
+		pieces = append(pieces, piece)
+	}
+
+	return pieces, nil
 }
 
 // postPieces adds an piece from JSON received in the request body.
-func postPieces(c *gin.Context) {
-	var newPiece piece
-
-	// Call BindJSON to bind the received JSON to
-	// newpiece.
-	if err := c.BindJSON(&newPiece); err != nil {
-		return
+func postPieces(db *sql.DB, piece Piece) ([]Piece, error) {
+	_, err := db.Exec("INSERT INTO piece VALUES ($1, $2, $3, $4)", piece.ID, piece.Title, piece.Artist, piece.Category)
+	var pieces []Piece
+	if err != nil {
+		return pieces, err
 	}
 
-	// Add the new piece to the slice.
-	pieces = append(pieces, newPiece)
-	c.IndentedJSON(http.StatusCreated, newPiece)
+	pieces = append(pieces, piece)
+
+	return pieces, nil
 }
 
 // getPieceByID locates the piece whose ID value matches the id
 // parameter sent by the client, then returns that piece as a response.
-func getPieceByID(c *gin.Context) {
-	id := c.Param("id")
+func getPieceByID(db *sql.DB, id string) ([]Piece, error) {
+	rows, err := db.Query("SELECT * FROM piece WHERE id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-	// Loop over the list of pieces, looking for
-	// an piece whose ID value matches the parameter.
-	for _, a := range pieces {
-		if a.ID == id {
-			c.IndentedJSON(http.StatusOK, a)
-			return
+	var pieces []Piece
+	for rows.Next() {
+		var piece Piece
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Category)
+		if err != nil {
+			log.Fatalf("Error scanning result: %v", err)
 		}
+		pieces = append(pieces, piece)
 	}
 
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "piece not found"})
+	if len(pieces) == 0 {
+		log.Fatalf("No Piece with id: %v", id)
+	}
+	if len(pieces) > 1 {
+		log.Fatalf("Multiple pieces with id: %v", id)
+	}
+
+	return pieces, nil
+}
+
+func deletePieceById(db *sql.DB, id string) ([]Piece, error) {
+	_, err := db.Query("DELETE FROM piece WHERE id = $1", id)
+	return nil, err
 }
 
 func main() {
@@ -88,9 +114,60 @@ func main() {
 	fmt.Println("Successfully connected!")
 
 	router := gin.Default()
-	router.GET("/pieces", getPieces)
-	router.GET("/pieces/:id", getPieceByID)
-	router.POST("/pieces", postPieces)
+	router.GET("/pieces", func(c *gin.Context) {
+		pieces, err := getPieces(db)
+		if err != nil {
+			log.Fatalf("Error querying database: %v", err)
+		}
+		json, err := json.Marshal(pieces)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusOK, "application/json", json)
+	})
+
+	router.GET("/pieces/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		pieces, err := getPieceByID(db, id)
+		if err != nil {
+			log.Fatalf("Error querying database: %v", err)
+		}
+		json, err := json.Marshal(pieces)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusOK, "application/json", json)
+
+	})
+
+	router.POST("/pieces", func(c *gin.Context) {
+		var piece Piece
+		if err := c.ShouldBindJSON(&piece); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		res, err := postPieces(db, piece)
+		if err != nil {
+			log.Fatalf("Error inserting piece: %v", err)
+		}
+		json, err := json.Marshal(res)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusCreated, "application/json", json)
+	})
+
+	router.DELETE("/pieces/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		_, err := deletePieceById(db, id)
+		if err != nil {
+			log.Fatalf("Error querying database: %v", err)
+		}
+	})
 
 	router.Run("localhost:8080")
 }
