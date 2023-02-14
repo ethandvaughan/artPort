@@ -10,14 +10,16 @@ const Piece = () => {
       .catch(error => console.error(error));
   }, []);
 
-  return data ? (
-    <ul>
-      {data.map(item => (
-        <li key={item.id}>{item.name}</li>
-      ))}
-    </ul>
-  ) : (
-    <p>Loading...</p>
+  return (
+    <div>
+      {data ? (
+        <pre>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      ) : (
+        <div>Loading...</div>
+      )}
+    </div>
   );
 };
 

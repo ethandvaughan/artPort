@@ -95,6 +95,23 @@ func deletePieceById(db *sql.DB, id string) ([]Piece, error) {
 	return nil, err
 }
 
+func cors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -114,6 +131,9 @@ func main() {
 	fmt.Println("Successfully connected!")
 
 	router := gin.Default()
+
+	router.Use(cors())
+
 	router.GET("/pieces", func(c *gin.Context) {
 		pieces, err := getPieces(db)
 		if err != nil {

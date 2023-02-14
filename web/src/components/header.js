@@ -5,7 +5,7 @@ const Header = () => {
     <div>
       <h1>Arfol</h1>
     </div>
-  )
+  );
 }
 
 export default Header;

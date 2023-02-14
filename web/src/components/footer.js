@@ -8,7 +8,7 @@ const Footer = () => {
         <li>About</li>
       </ul>
     </div>
-  )
+  );
 }
 
 export default Footer;
