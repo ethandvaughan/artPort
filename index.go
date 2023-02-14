@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
 
 const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "ev77916!"
-	dbname   = "artport"
+	host   = "localhost"
+	port   = 5432
+	user   = "postgres"
+	dbname = "artport"
 )
 
 // piece represents data about a record piece.
@@ -115,7 +115,7 @@ func cors() gin.HandlerFunc {
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+		host, port, user, os.Getenv("POSTPASS"), dbname)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
