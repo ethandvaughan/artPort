@@ -25,6 +25,8 @@ const Add = () => {
 
     const json = await response.json();
     setResponse(json);
+
+    window.location.reload();
   };
 
   return (
