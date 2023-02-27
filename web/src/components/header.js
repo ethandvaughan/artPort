@@ -6,6 +6,6 @@ const Header = () => {
       <h1>ARFOL</h1>
     </div>
   );
-}
+};
 
 export default Header;

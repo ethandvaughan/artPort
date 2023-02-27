@@ -1,14 +1,25 @@
-import React from 'react';
+import Link from 'next/link';
+import styles from './Footer.module.css';
 
 const Footer = () => {
   return (
-    <div>
-      <ul>
-        <li>Contact</li>
-        <li>About</li>
-      </ul>
-    </div>
+    <footer className={styles.footer}>
+      <nav>
+        <ul>
+          <li>
+            <Link href="/about">
+              About
+            </Link>
+          </li>
+          <li>
+            <Link href="/contact">
+              Contact
+            </Link>
+          </li>
+        </ul>
+      </nav>
+    </footer>
   );
-}
+};
 
 export default Footer;
