@@ -1,0 +1,36 @@
+.artwork {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.image {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  margin-right: 20px;
+}
+
+.details {
+  flex: 1;
+}
+
+h2.title {
+  font-size: 24px;
+  margin: 0;
+}
+
+h3.artist {
+  font-size: 18px;
+  margin: 0;
+  color: #666;
+}
+
+p.category {
+  font-size: 16px;
+  margin: 0;
+  color: #333;
+}

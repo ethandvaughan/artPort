@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import styles from './addPiece.module.css';
 
-const Add = () => {
+const Add = (props) => {
   const [response, setResponse] = useState(null);
   const [titleInput, setTitle] = useState('');
   const [artistInput, setArtist] = useState('');
@@ -15,6 +16,10 @@ const Add = () => {
 
   const [clays, setClays] = useState([]);
   const [cones, setCones] = useState([]);
+
+  const handleClose = () => {
+    props.setShowPopup(false);
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -67,6 +72,7 @@ const Add = () => {
     'Ceramic',
     'Charcoal',
     'Digital Art',
+    'Fabric',
     'Gouache',
     'Graphic Design',
     'Graphite',
@@ -94,104 +100,125 @@ const Add = () => {
   }, []);
 
   return (
-    <form onSubmit={handleSubmit}>
-      <ol>
-        <li>
-          Title:{' '}
-          <input
-            type='text'
-            value={titleInput}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </li>
-        <li>
-          Artist:{' '}
-          <input
-            type='text'
-            value={artistInput}
-            onChange={(event) => setArtist(event.target.value)}
-          />
-        </li>
-        <li>
-          Medium:{' '}
-          <select value={categoryInput} onChange={(event) => setCategory(event.target.value)}>
-            <option value=''>--Select medium--</option>
-            {categories.map((category, index) => (
-              <option key={index} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </li>
-
-        {categoryInput === 'Ceramic' && (
-          <>
+    <div className={styles.popup}>
+      <div className={styles.popupContent}>
+        <button className={styles.closeButton} onClick={handleClose}>
+          <span>X</span>
+        </button>
+        <form onSubmit={handleSubmit}>
+          <ol>
             <li>
-              Clay Type:{' '}
-              <select value={clayTypeInput} onChange={(event) => setClayType(event.target.value)}>
-                <option value=''>--Select Category--</option>
-                {clays.map((clay, index) => (
-                  <option key={index} value={clay}>
-                    {clay}
-                  </option>
-                ))}
-              </select>
-            </li>
-            <li>
-              Bisque Cone:{' '}
-              <select
-                value={bisqueConeInput}
-                onChange={(event) => setBisqueCone(event.target.value)}
-              >
-                <option value=''>--Select Bisque Cone--</option>
-                {cones.map((cone, index) => (
-                  <option key={index} value={cone}>
-                    {cone}
-                  </option>
-                ))}
-              </select>
-            </li>
-            <li>
-              Glaze Cone:{' '}
-              <select value={glazeConeInput} onChange={(event) => setGlazeCone(event.target.value)}>
-                <option value=''>--Select Glaze Cone--</option>
-                {cones.map((cone, index) => (
-                  <option key={index} value={cone}>
-                    {cone}
-                  </option>
-                ))}
-              </select>
-            </li>
-            <li>
-              Glaze Description:{' '}
+              Title:{' '}
               <input
                 type='text'
-                value={glazeDescriptionInput}
-                onChange={(event) => setGlazeDescription(event.target.value)}
+                value={titleInput}
+                onChange={(event) => setTitle(event.target.value)}
               />
             </li>
-          </>
-        )}
-        <li>
-          Size:{' '}
-          <input type='text' value={sizeInput} onChange={(event) => setSize(event.target.value)} />
-        </li>
-        <li>
-          Date:{' '}
-          <input type='date' value={dateInput} onChange={(event) => setDate(event.target.value)} />
-        </li>
-        <li>
-          Description:{' '}
-          <input
-            type='text'
-            value={descriptionInput}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </li>
-      </ol>
-      <button type='submit'>Submit</button>
-      {response ? <pre>{JSON.stringify(response, null, 2)}</pre> : null}
-    </form>
+            <li>
+              Artist:{' '}
+              <input
+                type='text'
+                value={artistInput}
+                onChange={(event) => setArtist(event.target.value)}
+              />
+            </li>
+            <li>
+              Medium:{' '}
+              <select value={categoryInput} onChange={(event) => setCategory(event.target.value)}>
+                <option value=''>--Select medium--</option>
+                {categories.map((category, index) => (
+                  <option key={index} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </li>
+
+            {categoryInput === 'Ceramic' && (
+              <>
+                <li>
+                  Clay Type:{' '}
+                  <select
+                    value={clayTypeInput}
+                    onChange={(event) => setClayType(event.target.value)}
+                  >
+                    <option value=''>--Select Category--</option>
+                    {clays.map((clay, index) => (
+                      <option key={index} value={clay}>
+                        {clay}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+                <li>
+                  Bisque Cone:{' '}
+                  <select
+                    value={bisqueConeInput}
+                    onChange={(event) => setBisqueCone(event.target.value)}
+                  >
+                    <option value=''>--Select Bisque Cone--</option>
+                    {cones.map((cone, index) => (
+                      <option key={index} value={cone}>
+                        {cone}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+                <li>
+                  Glaze Cone:{' '}
+                  <select
+                    value={glazeConeInput}
+                    onChange={(event) => setGlazeCone(event.target.value)}
+                  >
+                    <option value=''>--Select Glaze Cone--</option>
+                    {cones.map((cone, index) => (
+                      <option key={index} value={cone}>
+                        {cone}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+                <li>
+                  Glaze Description:{' '}
+                  <input
+                    type='text'
+                    value={glazeDescriptionInput}
+                    onChange={(event) => setGlazeDescription(event.target.value)}
+                  />
+                </li>
+              </>
+            )}
+            <li>
+              Size:{' '}
+              <input
+                type='text'
+                value={sizeInput}
+                onChange={(event) => setSize(event.target.value)}
+              />
+            </li>
+            <li>
+              Date:{' '}
+              <input
+                type='date'
+                value={dateInput}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </li>
+            <li>
+              Description:{' '}
+              <input
+                type='text'
+                value={descriptionInput}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </li>
+          </ol>
+          <button type='submit'>Submit</button>
+          {response ? <pre>{JSON.stringify(response, null, 2)}</pre> : null}
+        </form>
+      </div>
+    </div>
   );
 };
 
