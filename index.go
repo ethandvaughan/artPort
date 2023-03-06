@@ -37,6 +37,13 @@ type Piece struct {
 	Description       sql.NullString `json:"description"`
 }
 
+type Image struct {
+	ID       uuid.UUID `json:"id"`
+	Piece_ID uuid.UUID `json:"piece_id"`
+	Filename string    `json:"filename"`
+	Data     []byte    `json:"data"`
+}
+
 // main function to handle the routing of CRUD actions
 func main() {
 	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
@@ -143,15 +150,46 @@ func main() {
 		c.Data(http.StatusOK, "application/json", data)
 	})
 
+	router.GET("/images", func(c *gin.Context) {
+		images, err := getImages(db)
+		if err != nil {
+			log.Fatalf("Error querying database: %v", err)
+		}
+		json, err := json.Marshal(images)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusOK, "application/json", json)
+	})
+
 	router.POST("/pieces", func(c *gin.Context) {
 		var piece Piece
 		if err := c.ShouldBindJSON(&piece); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		res, err := postPieces(db, piece)
+		res, err := postPiece(db, piece)
 		if err != nil {
 			log.Fatalf("Error inserting piece: %v", err)
+		}
+		json, err := json.Marshal(res)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusCreated, "application/json", json)
+	})
+
+	router.POST("/images", func(c *gin.Context) {
+		var image Image
+		if err := c.ShouldBindJSON(&image); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		res, err := postImages(db, image)
+		if err != nil {
+			log.Fatalf("Error inserting image: %v", err)
 		}
 		json, err := json.Marshal(res)
 		if err != nil {
@@ -193,8 +231,28 @@ func getPieces(db *sql.DB) ([]Piece, error) {
 	return pieces, nil
 }
 
+func getImages(db *sql.DB) ([]Image, error) {
+	rows, err := db.Query("SELECT * FROM image")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var images []Image
+	for rows.Next() {
+		var image Image
+		err := rows.Scan(&image.ID, &image.Piece_ID, &image.Filename, &image.Data)
+		if err != nil {
+			log.Fatalf("Error scanning result: %v", err)
+		}
+		images = append(images, image)
+	}
+
+	return images, nil
+}
+
 // postPieces adds an piece from JSON received in the request body.
-func postPieces(db *sql.DB, piece Piece) ([]Piece, error) {
+func postPiece(db *sql.DB, piece Piece) ([]Piece, error) {
 	id := uuid.New().String()
 	_, err := db.Exec("INSERT INTO piece VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)", id, piece.Title, piece.Artist, piece.Glaze_Description, piece.Clay, piece.Bisque_Cone, piece.Glaze_Cone, piece.Date, piece.Category, piece.Description, piece.Size)
 	var pieces []Piece
@@ -205,6 +263,19 @@ func postPieces(db *sql.DB, piece Piece) ([]Piece, error) {
 	pieces = append(pieces, piece)
 
 	return pieces, nil
+}
+
+func postImages(db *sql.DB, image Image) ([]Image, error) {
+	id := uuid.New().String()
+	_, err := db.Exec("INSERT INTO image VALUES ($1, $2, $3, $4)", id, image.Piece_ID, image.Filename, image.Data)
+	var images []Image
+	if err != nil {
+		return images, err
+	}
+
+	images = append(images, image)
+
+	return images, nil
 }
 
 // getPieceByID locates the piece whose ID value matches the id

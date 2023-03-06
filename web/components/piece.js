@@ -1,19 +1,34 @@
-import { useState, useEffect } from 'react';
 import styles from './piece.module.css';
 
-const Piece = () => {
-  const [data, setData] = useState(null);
+const Piece = (props) => {
+  const handleDelete = (event) => {
+    event.preventDefault();
+    fetch(`http://localhost:8080/pieces/${props.id}`, {
+      method: 'DELETE',
+    })
+      .then((response) => {
+        console.log(response);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
 
-  useEffect(() => {
-    fetch('http://localhost:8080/pieces')
-      .then((response) => response.json())
-      .then((data) => setData(data))
-      .catch((error) => console.error(error));
-  }, []);
+    window.location.reload();
+  };
 
-  console.log(data);
-
-  return <div>{data ? <pre>{JSON.stringify(data, null, 2)}</pre> : <div>Loading...</div>}</div>;
+  console.log(props);
+  return (
+    <div className={styles.artwork}>
+      <div className={styles.details}>
+        <h2>{props.title}</h2>
+        <h3>by {props.artist}</h3>
+        <p>Category: {props.category}</p>
+        <button className={styles.deleteButton} onClick={handleDelete}>
+          Delete
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default Piece;
