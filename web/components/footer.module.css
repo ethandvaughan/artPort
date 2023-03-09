@@ -21,10 +21,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
-  bottom: 0;
-  left: 0;
-  right: 0;
 }
 
 .footer__link {

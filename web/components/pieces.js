@@ -12,7 +12,7 @@ const Pieces = () => {
   }, []);
 
   return (
-    <div>
+    <div className='grid gap-4 grid-cols-4 mx-8'>
       {data ? (
         data.map((artwork) => (
           <Piece

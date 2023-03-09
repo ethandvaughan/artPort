@@ -10,7 +10,7 @@ export default function PopupButton() {
   };
 
   return (
-    <div>
+    <div className='flex'>
       <button className={styles.addButton} onClick={handleClick}>
         <span>+</span>
       </button>

@@ -8,10 +8,10 @@ const Add = (props) => {
   const [categoryInput, setCategory] = useState('');
   const [sizeInput, setSize] = useState('');
   const [descriptionInput, setDescription] = useState('');
-  const [dateInput, setDate] = useState('');
-  const [clayTypeInput, setClayType] = useState('');
-  const [bisqueConeInput, setBisqueCone] = useState('');
-  const [glazeConeInput, setGlazeCone] = useState('');
+  const [dateInput, setDate] = useState(null);
+  const [clayTypeInput, setClayType] = useState('Ball');
+  const [bisqueConeInput, setBisqueCone] = useState('1');
+  const [glazeConeInput, setGlazeCone] = useState('1');
   const [glazeDescriptionInput, setGlazeDescription] = useState('');
 
   const [clays, setClays] = useState([]);
@@ -100,7 +100,7 @@ const Add = (props) => {
   }, []);
 
   return (
-    <div className={styles.popup}>
+    <div className={`${styles.popup} drop-shadow-lg`}>
       <div className={styles.popupContent}>
         <button className={styles.closeButton} onClick={handleClose}>
           <span>X</span>
@@ -110,6 +110,8 @@ const Add = (props) => {
             <li>
               Title:{' '}
               <input
+                required
+                className='block bg-white w-full border border-slate-300 rounded-md'
                 type='text'
                 value={titleInput}
                 onChange={(event) => setTitle(event.target.value)}
@@ -118,6 +120,8 @@ const Add = (props) => {
             <li>
               Artist:{' '}
               <input
+                required
+                className='block bg-white w-full border border-slate-300 rounded-md'
                 type='text'
                 value={artistInput}
                 onChange={(event) => setArtist(event.target.value)}
@@ -182,6 +186,7 @@ const Add = (props) => {
                 <li>
                   Glaze Description:{' '}
                   <input
+                    className='block bg-white w-full border border-slate-300 rounded-md'
                     type='text'
                     value={glazeDescriptionInput}
                     onChange={(event) => setGlazeDescription(event.target.value)}
@@ -192,6 +197,7 @@ const Add = (props) => {
             <li>
               Size:{' '}
               <input
+                className='block bg-white w-full border border-slate-300 rounded-md'
                 type='text'
                 value={sizeInput}
                 onChange={(event) => setSize(event.target.value)}
@@ -200,6 +206,7 @@ const Add = (props) => {
             <li>
               Date:{' '}
               <input
+                required
                 type='date'
                 value={dateInput}
                 onChange={(event) => setDate(event.target.value)}
@@ -208,6 +215,7 @@ const Add = (props) => {
             <li>
               Description:{' '}
               <input
+                className='block bg-white w-full border border-slate-300 rounded-md'
                 type='text'
                 value={descriptionInput}
                 onChange={(event) => setDescription(event.target.value)}
@@ -215,7 +223,8 @@ const Add = (props) => {
             </li>
           </ol>
           <button type='submit'>Submit</button>
-          {response ? <pre>{JSON.stringify(response, null, 2)}</pre> : null}
+
+          {/*response ? <pre>{JSON.stringify(response, null, 2)}</pre> : null*/}
         </form>
       </div>
     </div>

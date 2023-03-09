@@ -18,7 +18,7 @@ const Piece = (props) => {
 
   console.log(props);
   return (
-    <div className={styles.artwork}>
+    <div className={`${styles.artwork} drop-shadow-md`}>
       <div className={styles.details}>
         <h2>{props.title}</h2>
         <h3>by {props.artist}</h3>

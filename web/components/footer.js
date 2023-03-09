@@ -3,7 +3,7 @@ import styles from './Footer.module.css';
 
 const Footer = () => {
   return (
-    <footer className={styles.footer}>
+    <footer className={`${styles.footer} absolute inset-x-0 bottom-0`}>
       <nav>
         <ul>
           <li>
