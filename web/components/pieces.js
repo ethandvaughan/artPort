@@ -21,6 +21,7 @@ const Pieces = () => {
             title={artwork.title}
             artist={artwork.artist}
             category={artwork.category}
+            images={artwork.images}
           />
         ))
       ) : (

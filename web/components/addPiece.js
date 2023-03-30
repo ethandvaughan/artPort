@@ -13,12 +13,35 @@ const Add = (props) => {
   const [bisqueConeInput, setBisqueCone] = useState('1');
   const [glazeConeInput, setGlazeCone] = useState('1');
   const [glazeDescriptionInput, setGlazeDescription] = useState('');
+  const [imageURLs, setImageURLs] = useState([
+    'https://arfol-images.s3.us-west-2.amazonaws.com/noImage.jpg',
+  ]);
 
   const [clays, setClays] = useState([]);
   const [cones, setCones] = useState([]);
 
   const handleClose = () => {
     props.setShowPopup(false);
+  };
+
+  const handleFileUpload = async (event) => {
+    const fileList = Array.from(event.target.files);
+    const urlList = [];
+    for (const file in fileList) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('http://localhost:8080/images', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data; boundary=${formData._boundary}',
+        },
+      });
+
+      urlList.append(response);
+    }
+
+    setImageURLs(urlList);
   };
 
   const handleSubmit = async (event) => {
@@ -58,6 +81,7 @@ const Add = (props) => {
           String: sizeInput,
           Valid: true,
         },
+        images: imageURLs,
       }),
     });
 
@@ -100,13 +124,25 @@ const Add = (props) => {
   }, []);
 
   return (
-    <div className={`${styles.popup} drop-shadow-lg`}>
+    <div className={`${styles.popup} drop-shadow-lg z-10`}>
       <div className={styles.popupContent}>
         <button className={styles.closeButton} onClick={handleClose}>
           <span>X</span>
         </button>
         <form onSubmit={handleSubmit}>
           <ol>
+            <li>
+              Upload Image:{' '}
+              <input
+                type='file'
+                class='block w-full text-sm text-slate-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold'
+                multiple
+                onChange={handleFileUpload}
+              ></input>
+            </li>
             <li>
               Title:{' '}
               <input

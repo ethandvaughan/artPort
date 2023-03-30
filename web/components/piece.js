@@ -1,3 +1,4 @@
+import ImageCarousel from './imageCarousel';
 import styles from './piece.module.css';
 
 const Piece = (props) => {
@@ -16,13 +17,13 @@ const Piece = (props) => {
     window.location.reload();
   };
 
-  console.log(props);
   return (
-    <div className={`${styles.artwork} drop-shadow-md`}>
+    <div className={`${styles.artwork}`}>
       <div className={styles.details}>
+        <ImageCarousel images={props.images} />
         <h2>{props.title}</h2>
         <h3>by {props.artist}</h3>
-        <p>Category: {props.category}</p>
+        <p>Medium: {props.category}</p>
         <button className={styles.deleteButton} onClick={handleDelete}>
           Delete
         </button>
