@@ -8,7 +8,7 @@ const Add = (props) => {
   const [categoryInput, setCategory] = useState('');
   const [sizeInput, setSize] = useState('');
   const [descriptionInput, setDescription] = useState('');
-  const [dateInput, setDate] = useState(null);
+  const [dateInput, setDate] = useState('');
   const [clayTypeInput, setClayType] = useState('Ball');
   const [bisqueConeInput, setBisqueCone] = useState('1');
   const [glazeConeInput, setGlazeCone] = useState('1');
@@ -26,22 +26,26 @@ const Add = (props) => {
 
   const handleFileUpload = async (event) => {
     const fileList = Array.from(event.target.files);
+    console.log('File List: ');
+    console.log(fileList);
     const urlList = [];
-    for (const file in fileList) {
+    for (const file of fileList) {
       const formData = new FormData();
-      formData.append('file', file);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      formData.append('file', file, file.name);
       const response = await fetch('http://localhost:8080/images', {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data; boundary=${formData._boundary}',
-        },
       });
+      const url = await response.text();
 
-      urlList.append(response);
+      console.log(url);
+      urlList.push(url);
     }
 
     setImageURLs(urlList);
+    console.log('Url List: ');
+    console.log(urlList);
   };
 
   const handleSubmit = async (event) => {
@@ -89,6 +93,7 @@ const Add = (props) => {
     setResponse(json);
 
     window.location.reload();
+    console.log(response);
   };
 
   const categories = [
@@ -135,7 +140,7 @@ const Add = (props) => {
               Upload Image:{' '}
               <input
                 type='file'
-                class='block w-full text-sm text-slate-500
+                className='block w-full text-sm text-slate-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-full file:border-0
                 file:text-sm file:font-semibold'

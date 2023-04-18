@@ -12,7 +12,7 @@ export default function PopupButton() {
   return (
     <div className='flex'>
       <button className={styles.addButton} onClick={handleClick}>
-        <span>+</span>
+        <span className={styles.plus}>+</span>
       </button>
       {showPopup && <Add setShowPopup={setShowPopup} />}
     </div>

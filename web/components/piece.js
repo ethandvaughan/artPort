@@ -21,8 +21,9 @@ const Piece = (props) => {
     <div className={`${styles.artwork}`}>
       <div className={styles.details}>
         <ImageCarousel images={props.images} />
-        <h2>{props.title}</h2>
-        <h3>by {props.artist}</h3>
+        <h2 className='font-bold italic'>{props.title}</h2>
+        <h2>{new Date(props.date).getFullYear()}</h2>
+        <h3>By: {props.artist}</h3>
         <p>Medium: {props.category}</p>
         <button className={styles.deleteButton} onClick={handleDelete}>
           Delete

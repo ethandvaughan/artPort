@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -201,14 +202,14 @@ func main() {
 			log.Fatalf("Error inserting image: %v", err)
 		}
 
-		json, err := json.Marshal(res)
+		// json, err := json.Marshal(res)
 
-		c.Data(http.StatusCreated, "application/json", json)
+		c.Data(http.StatusCreated, "text/plain", []byte(res))
 	})
 
 	router.DELETE("/pieces/:id", func(c *gin.Context) {
 		id := c.Param("id")
-		_, err := deletePieceById(db, id)
+		_, err := deletePieceById(db, id, sess)
 		if err != nil {
 			log.Fatalf("Error querying database: %v", err)
 		}
@@ -228,13 +229,13 @@ func getPieces(db *sql.DB) ([]Piece, error) {
 	var pieces []Piece
 	for rows.Next() {
 		var piece Piece
-		var temp []uint8
-		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &temp)
+		var imageTemp []uint8
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp)
 		if err != nil {
 			log.Fatalf("Error scanning result: %v", err)
 		}
 		var imageArray []string
-		for _, v := range bytes.Split(temp, []byte(",")) {
+		for _, v := range bytes.Split(imageTemp, []byte(",")) {
 			imageArray = append(imageArray, strings.Trim(string(bytes.TrimSpace(v)), "{}"))
 		}
 		piece.Images = imageArray
@@ -270,7 +271,7 @@ func postPiece(db *sql.DB, piece Piece) ([]Piece, error) {
 	_, err := db.Exec("INSERT INTO piece VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)", id, piece.Title, piece.Artist, piece.Glaze_Description, piece.Clay, piece.Bisque_Cone, piece.Glaze_Cone, piece.Date, piece.Category, piece.Description, piece.Size, pq.Array(piece.Images))
 	var pieces []Piece
 	if err != nil {
-		return pieces, err
+		log.Fatalf("Error inserting piece: %v", err)
 	}
 
 	pieces = append(pieces, piece)
@@ -303,7 +304,7 @@ func getPieceByID(db *sql.DB, id string) ([]Piece, error) {
 	var pieces []Piece
 	for rows.Next() {
 		var piece Piece
-		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Category, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Description, &piece.Size)
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Category, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Description, &piece.Size, &piece.Images)
 		if err != nil {
 			log.Fatalf("Error scanning result: %v", err)
 		}
@@ -320,7 +321,46 @@ func getPieceByID(db *sql.DB, id string) ([]Piece, error) {
 	return pieces, nil
 }
 
-func deletePieceById(db *sql.DB, id string) ([]Piece, error) {
+func deletePieceById(db *sql.DB, id string, sess *session.Session) ([]Piece, error) {
+	svc := s3.New(sess)
+	resp, er := db.Query("SELECT * FROM piece WHERE id = $1", id)
+	if er != nil {
+		log.Fatalf("Error getting urls in delete: %v", er)
+	}
+	resp.Next()
+	var piece Piece
+	var urls []string
+	var imageTemp []uint8
+	scanErr := resp.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp)
+	if scanErr != nil {
+		log.Fatalf("Error scanning piece for urls %v: ", scanErr)
+	}
+	for _, v := range bytes.Split(imageTemp, []byte(",")) {
+		urls = append(urls, strings.Trim(string(bytes.TrimSpace(v)), "{}"))
+	}
+	for _, url := range urls {
+		parts := strings.SplitN(url, "/", 4)
+		if len(parts) != 4 {
+			return nil, fmt.Errorf("invalid S3 URL format: %s", url)
+		}
+
+		if parts[3] == "noImage.jpg" {
+			break
+		}
+
+		params := &s3.DeleteObjectInput{
+			Bucket: aws.String("arfol-images"),
+			Key:    aws.String(parts[3]),
+		}
+		print(parts[3])
+		print("\n")
+
+		var _, deleteErr = svc.DeleteObject(params)
+		if deleteErr != nil {
+			log.Fatalf("Error deleting image %v: ", deleteErr)
+		}
+
+	}
 	_, err := db.Query("DELETE FROM piece WHERE id = $1", id)
 	return nil, err
 }
