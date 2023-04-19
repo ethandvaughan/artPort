@@ -17,6 +17,8 @@ const Piece = (props) => {
     window.location.reload();
   };
 
+  const handleEdit = (event) => {};
+
   return (
     <div className={`${styles.artwork}`}>
       <div className={styles.details}>
@@ -25,8 +27,11 @@ const Piece = (props) => {
         <h2>{new Date(props.date).getFullYear()}</h2>
         <h3>By: {props.artist}</h3>
         <p>Medium: {props.category}</p>
-        <button className={styles.deleteButton} onClick={handleDelete}>
-          Delete
+        <button className='float-left' onClick={handleEdit}>
+          <img src='/edit.png' style={{ height: '17px', width: '17px' }} />
+        </button>
+        <button className='float-right' onClick={handleDelete}>
+          <img src='/trash.webp' style={{ height: '20px', width: '20px' }} />
         </button>
       </div>
     </div>
