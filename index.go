@@ -44,6 +44,7 @@ type Piece struct {
 	Date              time.Time      `json:"date"`
 	Description       sql.NullString `json:"description"`
 	Images            []string       `json:"images"`
+	Artist_Id         uuid.UUID      `json:"artist_id"`
 }
 
 // main function to handle the routing of CRUD actions
@@ -161,18 +162,18 @@ func main() {
 		c.Data(http.StatusOK, "application/json", data)
 	})
 
-	// router.GET("/images", func(c *gin.Context) {
-	// 	images, err := getImages(db)
-	// 	if err != nil {
-	// 		log.Fatalf("Error querying database: %v", err)
-	// 	}
-	// 	json, err := json.Marshal(images)
-	// 	if err != nil {
-	// 		log.Fatalf("Error encoding JSON: %v", err)
-	// 	}
+	router.GET("/ceramic", func(c *gin.Context) {
+		ceramics, err := getCeramics(db)
+		if err != nil {
+			log.Fatalf("Error getting ceramics %v: ", err)
+		}
+		json, err := json.Marshal(ceramics)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
 
-	// 	c.Data(http.StatusOK, "application/json", json)
-	// })
+		c.Data(http.StatusOK, "application/json", json)
+	})
 
 	router.POST("/pieces", func(c *gin.Context) {
 		var piece Piece
@@ -220,7 +221,7 @@ func main() {
 
 // getpieces responds with the list of all pieces as JSON.
 func getPieces(db *sql.DB) ([]Piece, error) {
-	rows, err := db.Query("SELECT * FROM piece")
+	rows, err := db.Query("SELECT * FROM piece ORDER BY category ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +231,7 @@ func getPieces(db *sql.DB) ([]Piece, error) {
 	for rows.Next() {
 		var piece Piece
 		var imageTemp []uint8
-		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp)
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp, &piece.Artist_Id)
 		if err != nil {
 			log.Fatalf("Error scanning result: %v", err)
 		}
@@ -245,25 +246,31 @@ func getPieces(db *sql.DB) ([]Piece, error) {
 	return pieces, nil
 }
 
-// func getImages(db *sql.DB) ([]Image, error) {
-// 	rows, err := db.Query("SELECT * FROM image")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
+func getCeramics(db *sql.DB) ([]Piece, error) {
+	rows, err := db.Query("SELECT * FROM piece WHERE piece.category = 'Ceramic'")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-// 	var images []Image
-// 	for rows.Next() {
-// 		var image Image
-// 		err := rows.Scan(&image.ID, &image.Piece_ID, &image.Filename, &image.Data)
-// 		if err != nil {
-// 			log.Fatalf("Error scanning result: %v", err)
-// 		}
-// 		images = append(images, image)
-// 	}
+	var pieces []Piece
+	for rows.Next() {
+		var piece Piece
+		var imageTemp []uint8
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp, &piece.Artist_Id)
+		if err != nil {
+			log.Fatalf("Error scanning result: %v", err)
+		}
+		var imageArray []string
+		for _, v := range bytes.Split(imageTemp, []byte(",")) {
+			imageArray = append(imageArray, strings.Trim(string(bytes.TrimSpace(v)), "{}"))
+		}
+		piece.Images = imageArray
+		pieces = append(pieces, piece)
+	}
 
-// 	return images, nil
-// }
+	return pieces, nil
+}
 
 // postPieces adds an piece from JSON received in the request body.
 func postPiece(db *sql.DB, piece Piece) ([]Piece, error) {
@@ -304,7 +311,7 @@ func getPieceByID(db *sql.DB, id string) ([]Piece, error) {
 	var pieces []Piece
 	for rows.Next() {
 		var piece Piece
-		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Category, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Description, &piece.Size, &piece.Images)
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Category, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Description, &piece.Size, &piece.Images, &piece.Artist_Id)
 		if err != nil {
 			log.Fatalf("Error scanning result: %v", err)
 		}
@@ -331,7 +338,7 @@ func deletePieceById(db *sql.DB, id string, sess *session.Session) ([]Piece, err
 	var piece Piece
 	var urls []string
 	var imageTemp []uint8
-	scanErr := resp.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp)
+	scanErr := resp.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp, &piece.Artist_Id)
 	if scanErr != nil {
 		log.Fatalf("Error scanning piece for urls %v: ", scanErr)
 	}

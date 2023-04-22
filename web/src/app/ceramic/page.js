@@ -1,19 +1,23 @@
-import { useState, useEffect } from 'react';
-import PopupButton from './addPieceButton';
-import Piece from './piece';
+'use client';
+import PopupButton from 'components/addPieceButton';
+import Footer from 'components/footer';
+import Header from 'components/header';
+import Piece from 'components/piece';
+import { useEffect, useState } from 'react';
 
-const Pieces = () => {
+const Ceramic = () => {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8080/pieces')
+    fetch('http://localhost:8080/ceramic')
       .then((response) => response.json())
       .then((data) => setData(data))
       .catch((error) => console.error(error));
   }, []);
 
   return (
-    <div>
+    <>
+      <Header title='Arfol' />
       <PopupButton />
       <div className='grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mx-8 my-4'>
         {data ? (
@@ -32,8 +36,9 @@ const Pieces = () => {
           <div>Loading...</div>
         )}
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 
-export default Pieces;
+export default Ceramic;
