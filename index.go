@@ -16,8 +16,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
@@ -45,6 +47,15 @@ type Piece struct {
 	Description       sql.NullString `json:"description"`
 	Images            []string       `json:"images"`
 	Artist_Id         uuid.UUID      `json:"artist_id"`
+}
+
+type Artist struct {
+	ID         uuid.UUID `json:"id"`
+	Username   string    `json:"username"`
+	Password   string    `json:"passsword"`
+	First_Name string    `json:"first_name"`
+	Last_Name  string    `json:"last_name"`
+	Crated     time.Time `json:"created_at"`
 }
 
 // main function to handle the routing of CRUD actions
@@ -173,6 +184,29 @@ func main() {
 		}
 
 		c.Data(http.StatusOK, "application/json", json)
+	})
+
+	router.POST("/auth", func(c *gin.Context) {
+		username := c.Param("username")
+		password := c.Param("password")
+		// validate user credentials
+		artist, err := AuthenticateUser(db, username, password)
+		if err != nil {
+
+		}
+
+		// generate JWT token
+		token, err := GenerateToken(artist)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Failed to generate token",
+			})
+			return
+		}
+		// return token in response body
+		c.JSON(http.StatusOK, gin.H{
+			"token": token,
+		})
 	})
 
 	router.POST("/pieces", func(c *gin.Context) {
@@ -411,6 +445,50 @@ func getOptions(db *sql.DB, option string) ([]string, error) {
 	}
 
 	return options, nil
+}
+
+func AuthenticateUser(db *sql.DB, username string, password string) (*Artist, error) {
+
+	var artist Artist
+	rows, err := db.Query("SELECT id, username, password FROM artist WHERE username = $1", username)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			// User not found
+			return &artist, fmt.Errorf("user not found")
+		} else {
+			log.Fatalf("Failed to query database in AuthenticateUser: %v", err)
+		}
+	}
+	rows.Scan(&artist.ID, &artist.Username, &artist.Password)
+
+	// Compare the password hash stored in the database with the hash of the password entered by the user
+	var correctPass bool = artist.Password == password
+	if correctPass != true {
+		// Password does not match
+		return &artist, fmt.Errorf("invalid password")
+	}
+
+	// Authentication successful
+	return &artist, nil
+
+}
+
+func GenerateToken(artist *Artist) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	claims := token.Claims.(jwt.MapClaims)
+	claims["sub"] = artist.ID
+	claims["name"] = artist.Username
+	claims["iat"] = time.Now().Unix()
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+	secretKey := []byte("secret-key") // replace with your own secret key
+	signedToken, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", err
+	}
+
+	return signedToken, nil
 }
 
 func cors() gin.HandlerFunc {

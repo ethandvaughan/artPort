@@ -1,7 +1,7 @@
 'use client';
 import Footer from 'components/footer';
 import Header from 'components/header';
-import bcrypt from 'bcrypt';
+import sha256 from 'sha256';
 import { useState } from 'react';
 
 export default function Login() {
@@ -10,7 +10,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = sha256(password);
 
     const response = await fetch('/api/login', {
       method: 'POST',

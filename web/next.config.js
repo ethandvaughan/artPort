@@ -3,6 +3,10 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
-}
+  webpack: (config) => {
+    config.resolve.fallback = { fs: false };
+    return config;
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
