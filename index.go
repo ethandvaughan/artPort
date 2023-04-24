@@ -122,9 +122,12 @@ func main() {
 		c.Data(http.StatusOK, "application/json", json)
 	})
 
-	router.GET("/pieces/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		pieces, err := getPieceByID(db, id)
+	router.GET("/pieces/:token", func(c *gin.Context) {
+		id, err := getUserIDFromToken(c)
+		if err != nil {
+			log.Fatalf("Error getting user ID from token: %v", err)
+		}
+		pieces, err := getPieceByUserID(db, id)
 		if err != nil {
 			log.Fatalf("Error querying database: %v", err)
 		}
@@ -207,6 +210,10 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{
 			"token": token,
 		})
+	})
+
+	router.POST("/user", func(c *gin.Context) {
+
 	})
 
 	router.POST("/pieces", func(c *gin.Context) {
@@ -335,8 +342,8 @@ func postImages(uploader *s3manager.Uploader, image *multipart.FileHeader) (stri
 
 // getPieceByID locates the piece whose ID value matches the id
 // parameter sent by the client, then returns that piece as a response.
-func getPieceByID(db *sql.DB, id string) ([]Piece, error) {
-	rows, err := db.Query("SELECT * FROM piece WHERE id = $1", id)
+func getPieceByUserID(db *sql.DB, id uuid.UUID) ([]Piece, error) {
+	rows, err := db.Query("SELECT * FROM piece WHERE artist_id = $1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -447,6 +454,38 @@ func getOptions(db *sql.DB, option string) ([]string, error) {
 	return options, nil
 }
 
+func getUserIDFromToken(c *gin.Context) (uuid.UUID, error) {
+	// Get the token from the Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return uuid.Nil, fmt.Errorf("missing authorization header")
+	}
+
+	tokenString := authHeader[7:] // Remove the "Bearer " prefix from the header value
+
+	// Parse the token and extract the user ID
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// TODO: replace with your own secret key
+		return []byte("my-secret-key"), nil
+	})
+
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to parse token: %v", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return uuid.Nil, fmt.Errorf("invalid token")
+	}
+
+	userID, ok := claims["user_id"].(uuid.UUID)
+	if !ok {
+		return uuid.Nil, fmt.Errorf("missing user ID in token")
+	}
+
+	return userID, nil
+}
+
 func AuthenticateUser(db *sql.DB, username string, password string) (*Artist, error) {
 
 	var artist Artist
@@ -477,8 +516,8 @@ func GenerateToken(artist *Artist) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
-	claims["sub"] = artist.ID
-	claims["name"] = artist.Username
+	claims["user_id"] = artist.ID
+	claims["username"] = artist.Username
 	claims["iat"] = time.Now().Unix()
 	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
 
