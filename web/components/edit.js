@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from './Edit.module.css';
+import styles from './edit.module.css';
 
 const Edit = () => {
   const [title, setTitle] = useState('');

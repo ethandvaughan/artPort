@@ -1,6 +1,4 @@
 'use client';
-import Footer from 'components/footer';
-import Header from 'components/header';
 import sha256 from 'sha256';
 import { useState } from 'react';
 
