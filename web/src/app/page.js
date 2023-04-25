@@ -11,18 +11,14 @@ export default function Home() {
   if (!token) {
     return (
       <>
-        <Header title='Arfol' />
         <Login setToken={setToken} />
-        <Footer />
       </>
     );
   }
 
   return (
     <>
-      <Header title='Arfol' />
       <Pieces />
-      <Footer />
     </>
   );
 }

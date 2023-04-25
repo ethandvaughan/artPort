@@ -17,7 +17,6 @@ const Ceramic = () => {
 
   return (
     <>
-      <Header title='Arfol' />
       <PopupButton />
       <div className='grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mx-8 my-4'>
         {data ? (
@@ -36,7 +35,6 @@ const Ceramic = () => {
           <div>Loading...</div>
         )}
       </div>
-      <Footer />
     </>
   );
 };
