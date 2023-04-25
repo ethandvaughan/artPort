@@ -26,7 +26,7 @@ import (
 
 // database connection
 const (
-	host   = "localhost"
+	host   = "arfol.cobkxdytb6pv.us-west-2.rds.amazonaws.com"
 	port   = 5432
 	user   = "postgres"
 	dbname = "arfol"
@@ -61,7 +61,7 @@ type Artist struct {
 // main function to handle the routing of CRUD actions
 func main() {
 	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
-		os.Getenv("POSTPASS"), user, host, dbname)
+		user, os.Getenv("POSTPASS"), host, dbname)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
