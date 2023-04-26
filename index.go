@@ -52,10 +52,26 @@ type Piece struct {
 type Artist struct {
 	ID         uuid.UUID `json:"id"`
 	Username   string    `json:"username"`
-	Password   string    `json:"passsword"`
+	Password   string    `json:"password"`
 	First_Name string    `json:"first_name"`
 	Last_Name  string    `json:"last_name"`
 	Crated     time.Time `json:"created_at"`
+}
+
+type InvalidPasswordError struct {
+	error
+}
+
+type NoUserError struct {
+	error
+}
+
+func NewInvalidPasswordError() error {
+	return InvalidPasswordError{fmt.Errorf("invalid password")}
+}
+
+func NewNoUserError() error {
+	return NoUserError{fmt.Errorf("user not found")}
 }
 
 // main function to handle the routing of CRUD actions
@@ -78,7 +94,7 @@ func main() {
 
 	rows, err := db.Query("SELECT current_database()")
 	if err != nil {
-		// handle error
+		log.Fatalf("Error selecting database: %v", err)
 	}
 	defer rows.Close()
 
@@ -190,12 +206,29 @@ func main() {
 	})
 
 	router.POST("/auth", func(c *gin.Context) {
-		username := c.Param("username")
-		password := c.Param("password")
+		type Auth struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		var auth Auth
+		c.ShouldBindJSON(&auth)
 		// validate user credentials
-		artist, err := AuthenticateUser(db, username, password)
+		artist, err := AuthenticateUser(db, auth.Username, auth.Password)
 		if err != nil {
-
+			if _, noUser := err.(NoUserError); noUser {
+				fmt.Println("Error: no user")
+				c.JSON(http.StatusBadRequest, gin.H{
+					"token": "no user",
+				})
+				return
+			}
+			if _, invalPass := err.(InvalidPasswordError); invalPass {
+				fmt.Println("Error: invalid password")
+				c.JSON(http.StatusNotFound, gin.H{
+					"token": "invalid password",
+				})
+				return
+			}
 		}
 
 		// generate JWT token
@@ -213,7 +246,20 @@ func main() {
 	})
 
 	router.POST("/user", func(c *gin.Context) {
-
+		var artist Artist
+		if err := c.BindJSON(&artist); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		res, err := postUser(db, artist)
+		if err != nil {
+			log.Fatalf("Error inserting user: %v", err)
+		}
+		json, err := json.Marshal(res)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+		c.Data(http.StatusCreated, "application/json", json)
 	})
 
 	router.POST("/pieces", func(c *gin.Context) {
@@ -325,6 +371,18 @@ func postPiece(db *sql.DB, piece Piece) ([]Piece, error) {
 	pieces = append(pieces, piece)
 
 	return pieces, nil
+}
+
+func postUser(db *sql.DB, artist Artist) (Artist, error) {
+	artist.ID = uuid.New()
+	artist.Crated = time.Now()
+	_, err := db.Exec("INSERT INTO artist VALUES ($1, $2, $3, $4, $5, $6)", artist.ID, artist.Username, artist.Password, artist.First_Name, artist.Last_Name, artist.Crated)
+	if err != nil {
+		log.Fatalf("Error inserting user: %v", err)
+	}
+
+	return artist, err
+
 }
 
 func postImages(uploader *s3manager.Uploader, image *multipart.FileHeader) (string, error) {
@@ -493,18 +551,23 @@ func AuthenticateUser(db *sql.DB, username string, password string) (*Artist, er
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			// User not found
-			return &artist, fmt.Errorf("user not found")
+			return &artist, NewNoUserError()
 		} else {
 			log.Fatalf("Failed to query database in AuthenticateUser: %v", err)
 		}
 	}
+	rows.Next()
 	rows.Scan(&artist.ID, &artist.Username, &artist.Password)
 
+	if artist.Username != username {
+		// User not found
+		return &artist, NewNoUserError()
+	}
 	// Compare the password hash stored in the database with the hash of the password entered by the user
 	var correctPass bool = artist.Password == password
 	if correctPass != true {
 		// Password does not match
-		return &artist, fmt.Errorf("invalid password")
+		return &artist, NewInvalidPasswordError()
 	}
 
 	// Authentication successful

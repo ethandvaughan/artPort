@@ -1,7 +1,12 @@
+'use client';
 import Link from 'next/link';
 import styles from './header.module.css';
+import useToken from 'components/useToken';
+import HeadLogin from './headLogin';
+import LogoutButton from './logoutButton';
 
 const Header = ({ title }) => {
+  const { token, setToken } = useToken();
   return (
     <header className={styles.header}>
       <div className='flex w-full flex-wrap items-center justify-between px-6'>
@@ -20,15 +25,22 @@ const Header = ({ title }) => {
           </Link>
         </div>
         <div className='relative'>
-          <Link href='/account'>
-            <img
-              src='/profile.jpg'
-              className='rounded-full'
-              style={{ height: '30px', width: '30px' }}
-              alt=''
-              loading='lazy'
-            />
-          </Link>
+          {token ? (
+            <>
+              <Link href='/account'>
+                <img
+                  src='/profile.jpg'
+                  className='rounded-full'
+                  style={{ height: '30px', width: '30px' }}
+                  alt=''
+                  loading='lazy'
+                />
+              </Link>
+              <LogoutButton />
+            </>
+          ) : (
+            <HeadLogin />
+          )}
         </div>
       </div>
     </header>

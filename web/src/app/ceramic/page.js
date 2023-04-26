@@ -13,6 +13,10 @@ const Ceramic = () => {
       .catch((error) => console.error(error));
   }, []);
 
+  if (!token) {
+    window.location.href = '/login';
+  }
+
   return (
     <>
       <PopupButton />

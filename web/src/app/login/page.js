@@ -1,32 +1,49 @@
 'use client';
-import sha256 from 'sha256';
 import { useState } from 'react';
+import { createHash } from 'crypto';
+import useToken from 'components/useToken';
+import Link from 'next/link';
+
+async function loginUser(credentials) {
+  console.log(JSON.stringify(credentials));
+  return fetch('http://localhost:8080/auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(credentials),
+  }).then((data) => data.json());
+}
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [prePassword, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { token, setToken } = useToken();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const hashedPassword = sha256(password);
-
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, hashedPassword }),
+    setError(null);
+    const hash = createHash('sha256');
+    hash.update(prePassword);
+    var password = hash.digest('hex');
+    const token = await loginUser({
+      username,
+      password,
     });
-
-    if (response.ok) {
-      // Redirect to home page
-      window.location.href = '/';
+    console.log(token.token);
+    if (token.token == 'invalid password') {
+      setError('Invalid password');
+    } else if (token.token == 'no user') {
+      setError('Username not found');
     } else {
-      // Show error message
-      const { message } = await response.json();
-      alert(message);
+      setToken(token);
     }
   };
+
+  if (token) {
+    window.location.href = '/';
+  }
 
   return (
     <>
@@ -35,21 +52,27 @@ export default function Login() {
           Log in to your account
         </h2>
       </div>
+      {error && (
+        <div className='text-red-700 px-4 py-3 rounded relative' role='alert'>
+          <strong className='font-bold'>Error: </strong>
+          <div className='sm:inline'>{error}</div>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className='mt-8 space-y-6'>
         <input type='hidden' name='remember' value='true' />
         <div>
-          <label htmlFor='email-address' className='sr-only'>
-            Email address:
+          <label htmlFor='username' className='sr-only'>
+            Username:
           </label>
           <input
-            id='email-address'
-            name='email'
-            type='email'
-            autoComplete='email'
+            id='username'
+            name='username'
+            type='username'
+            autoComplete='username'
             required
-            placeholder='Email address'
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder='Username'
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
         </div>
         <div>
@@ -63,21 +86,20 @@ export default function Login() {
             autoComplete='current-password'
             required
             placeholder='Password'
-            value={password}
+            value={prePassword}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-
-        <label htmlFor='remember-me' className='ml-2 block text-sm text-gray-900'>
-          Remember me
-        </label>
-        <input id='remember-me' name='remember-me' type='checkbox' />
 
         <div className='text-sm'>
           <a href='#' className='font-medium text-primary-600 hover:text-primary-500'>
             Forgot your password?
           </a>
         </div>
+
+        <Link href='/createAccount'>
+          <p>Create Account</p>
+        </Link>
 
         <div>
           <button type='submit'>Sign in</button>
