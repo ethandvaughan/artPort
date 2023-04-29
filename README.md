@@ -2,7 +2,7 @@
 
 ---
 
-### An artist portfolio app made to store images and metadata
+### An artist portfolio app made to store images and metadata of artwork
 
 ## Software Used
 
