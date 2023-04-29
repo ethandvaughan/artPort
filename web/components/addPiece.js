@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from './addPiece.module.css';
+import useId from './useId';
 
 const Add = (props) => {
   const [response, setResponse] = useState(null);
@@ -19,6 +20,7 @@ const Add = (props) => {
 
   const [clays, setClays] = useState([]);
   const [cones, setCones] = useState([]);
+  const { user_id, setId } = useId();
 
   const handleClose = () => {
     props.setShowPopup(false);
@@ -86,6 +88,7 @@ const Add = (props) => {
           Valid: true,
         },
         images: imageURLs,
+        artist_id: user_id,
       }),
     });
 

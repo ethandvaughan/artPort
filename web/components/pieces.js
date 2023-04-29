@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import PopupButton from './addPieceButton';
 import Piece from './piece';
+import useId from 'components/useId';
 
 const Pieces = () => {
   const [data, setData] = useState(null);
+  const { user_id, setId } = useId();
 
   useEffect(() => {
-    fetch('http://localhost:8080/pieces')
+    fetch(`http://localhost:8080/pieces/${user_id}`)
       .then((response) => response.json())
       .then((data) => setData(data))
       .catch((error) => console.error(error));
@@ -29,7 +31,7 @@ const Pieces = () => {
             />
           ))
         ) : (
-          <div>Loading...</div>
+          <div>No artwork to display</div>
         )}
       </div>
     </div>

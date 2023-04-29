@@ -36,7 +36,7 @@ const CreateAccount = () => {
       first_name,
       last_name,
     });
-    // window.location.href = '/login';
+    window.location.href = '/login';
   };
 
   return (

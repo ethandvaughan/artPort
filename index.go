@@ -50,12 +50,13 @@ type Piece struct {
 }
 
 type Artist struct {
-	ID         uuid.UUID `json:"id"`
-	Username   string    `json:"username"`
-	Password   string    `json:"password"`
-	First_Name string    `json:"first_name"`
-	Last_Name  string    `json:"last_name"`
-	Crated     time.Time `json:"created_at"`
+	ID            uuid.UUID `json:"id"`
+	Username      string    `json:"username"`
+	Password      string    `json:"password"`
+	First_Name    string    `json:"first_name"`
+	Last_Name     string    `json:"last_name"`
+	Crated        time.Time `json:"created_at"`
+	Profile_Photo string    `json:"profile_photo"`
 }
 
 type InvalidPasswordError struct {
@@ -138,12 +139,23 @@ func main() {
 		c.Data(http.StatusOK, "application/json", json)
 	})
 
-	router.GET("/pieces/:token", func(c *gin.Context) {
-		id, err := getUserIDFromToken(c)
+	router.GET("/user/:user_id", func(c *gin.Context) {
+		userId := c.Param("user_id")
+		user, err := getUser(db, userId)
 		if err != nil {
-			log.Fatalf("Error getting user ID from token: %v", err)
+			log.Fatalf("Error querying database: %v", err)
 		}
-		pieces, err := getPieceByUserID(db, id)
+		json, err := json.Marshal(user)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusOK, "application/json", json)
+	})
+
+	router.GET("/pieces/:user_id", func(c *gin.Context) {
+		userId := c.Param("user_id")
+		pieces, err := getPieceByUserID(db, userId)
 		if err != nil {
 			log.Fatalf("Error querying database: %v", err)
 		}
@@ -241,7 +253,8 @@ func main() {
 		}
 		// return token in response body
 		c.JSON(http.StatusOK, gin.H{
-			"token": token,
+			"token":   token,
+			"user_id": artist.ID,
 		})
 	})
 
@@ -333,6 +346,51 @@ func getPieces(db *sql.DB) ([]Piece, error) {
 	return pieces, nil
 }
 
+// getPieceByUserID locates the piece whose user_id value matches the id
+// parameter sent by the client, then returns that piece as a response.
+func getPieceByUserID(db *sql.DB, id string) ([]Piece, error) {
+	rows, err := db.Query("SELECT * FROM piece WHERE artist_id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pieces []Piece
+	var imageTemp []uint8
+	for rows.Next() {
+		var piece Piece
+		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp, &piece.Artist_Id)
+		if err != nil {
+			log.Fatalf("Error scanning result: %v", err)
+		}
+		var imageArray []string
+		for _, v := range bytes.Split(imageTemp, []byte(",")) {
+			imageArray = append(imageArray, strings.Trim(string(bytes.TrimSpace(v)), "{}"))
+		}
+		piece.Images = imageArray
+		pieces = append(pieces, piece)
+	}
+
+	return pieces, nil
+}
+
+// getUser responds with the user with given id as JSON.
+func getUser(db *sql.DB, userId string) (Artist, error) {
+	rows, err := db.Query("SELECT * FROM artist WHERE user.id = $1", userId)
+	var artist Artist
+	if err != nil {
+		return artist, err
+	}
+	defer rows.Close()
+	rows.Next()
+	scanErr := rows.Scan(&artist.ID, &artist.Username, &artist.Password, &artist.First_Name, &artist.Last_Name, &artist.Crated, &artist.Profile_Photo)
+	if scanErr != nil {
+		log.Fatalf("Error scanning result: %v", err)
+	}
+
+	return artist, nil
+}
+
 func getCeramics(db *sql.DB) ([]Piece, error) {
 	rows, err := db.Query("SELECT * FROM piece WHERE piece.category = 'Ceramic'")
 	if err != nil {
@@ -362,7 +420,7 @@ func getCeramics(db *sql.DB) ([]Piece, error) {
 // postPieces adds an piece from JSON received in the request body.
 func postPiece(db *sql.DB, piece Piece) ([]Piece, error) {
 	id := uuid.New().String()
-	_, err := db.Exec("INSERT INTO piece VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)", id, piece.Title, piece.Artist, piece.Glaze_Description, piece.Clay, piece.Bisque_Cone, piece.Glaze_Cone, piece.Date, piece.Category, piece.Description, piece.Size, pq.Array(piece.Images))
+	_, err := db.Exec("INSERT INTO piece VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)", id, piece.Title, piece.Artist, piece.Glaze_Description, piece.Clay, piece.Bisque_Cone, piece.Glaze_Cone, piece.Date, piece.Category, piece.Description, piece.Size, pq.Array(piece.Images), piece.Artist_Id)
 	var pieces []Piece
 	if err != nil {
 		log.Fatalf("Error inserting piece: %v", err)
@@ -376,7 +434,7 @@ func postPiece(db *sql.DB, piece Piece) ([]Piece, error) {
 func postUser(db *sql.DB, artist Artist) (Artist, error) {
 	artist.ID = uuid.New()
 	artist.Crated = time.Now()
-	_, err := db.Exec("INSERT INTO artist VALUES ($1, $2, $3, $4, $5, $6)", artist.ID, artist.Username, artist.Password, artist.First_Name, artist.Last_Name, artist.Crated)
+	_, err := db.Exec("INSERT INTO artist VALUES ($1, $2, $3, $4, $5, $6, $7)", artist.ID, artist.Username, artist.Password, artist.First_Name, artist.Last_Name, artist.Crated, artist.Profile_Photo)
 	if err != nil {
 		log.Fatalf("Error inserting user: %v", err)
 	}
@@ -396,35 +454,6 @@ func postImages(uploader *s3manager.Uploader, image *multipart.FileHeader) (stri
 		log.Fatalf("Error uploading image: %v", err)
 	}
 	return result.Location, nil
-}
-
-// getPieceByID locates the piece whose ID value matches the id
-// parameter sent by the client, then returns that piece as a response.
-func getPieceByUserID(db *sql.DB, id uuid.UUID) ([]Piece, error) {
-	rows, err := db.Query("SELECT * FROM piece WHERE artist_id = $1", id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var pieces []Piece
-	for rows.Next() {
-		var piece Piece
-		err := rows.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Category, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Description, &piece.Size, &piece.Images, &piece.Artist_Id)
-		if err != nil {
-			log.Fatalf("Error scanning result: %v", err)
-		}
-		pieces = append(pieces, piece)
-	}
-
-	if len(pieces) == 0 {
-		log.Fatalf("No Piece with id: %v", id)
-	}
-	if len(pieces) > 1 {
-		log.Fatalf("Multiple pieces with id: %v", id)
-	}
-
-	return pieces, nil
 }
 
 func deletePieceById(db *sql.DB, id string, sess *session.Session) ([]Piece, error) {
@@ -512,38 +541,6 @@ func getOptions(db *sql.DB, option string) ([]string, error) {
 	return options, nil
 }
 
-func getUserIDFromToken(c *gin.Context) (uuid.UUID, error) {
-	// Get the token from the Authorization header
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return uuid.Nil, fmt.Errorf("missing authorization header")
-	}
-
-	tokenString := authHeader[7:] // Remove the "Bearer " prefix from the header value
-
-	// Parse the token and extract the user ID
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// TODO: replace with your own secret key
-		return []byte("my-secret-key"), nil
-	})
-
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("failed to parse token: %v", err)
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return uuid.Nil, fmt.Errorf("invalid token")
-	}
-
-	userID, ok := claims["user_id"].(uuid.UUID)
-	if !ok {
-		return uuid.Nil, fmt.Errorf("missing user ID in token")
-	}
-
-	return userID, nil
-}
-
 func AuthenticateUser(db *sql.DB, username string, password string) (*Artist, error) {
 
 	var artist Artist
@@ -576,15 +573,13 @@ func AuthenticateUser(db *sql.DB, username string, password string) (*Artist, er
 }
 
 func GenerateToken(artist *Artist) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": artist.ID.String(),
+		"iat":     time.Now().Unix(),
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
 
-	claims := token.Claims.(jwt.MapClaims)
-	claims["user_id"] = artist.ID
-	claims["username"] = artist.Username
-	claims["iat"] = time.Now().Unix()
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
-
-	secretKey := []byte("secret-key") // replace with your own secret key
+	secretKey := []byte("secret-key")
 	signedToken, err := token.SignedString(secretKey)
 	if err != nil {
 		return "", err

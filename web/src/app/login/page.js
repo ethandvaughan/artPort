@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { createHash } from 'crypto';
 import useToken from 'components/useToken';
 import Link from 'next/link';
+import useId from 'components/useId';
 
 async function loginUser(credentials) {
-  console.log(JSON.stringify(credentials));
   return fetch('http://localhost:8080/auth', {
     method: 'POST',
     headers: {
@@ -20,6 +20,7 @@ export default function Login() {
   const [prePassword, setPassword] = useState('');
   const [error, setError] = useState('');
   const { token, setToken } = useToken();
+  const { user_id, setId } = useId();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,20 +28,23 @@ export default function Login() {
     const hash = createHash('sha256');
     hash.update(prePassword);
     var password = hash.digest('hex');
-    const token = await loginUser({
+    const response = await loginUser({
       username,
       password,
     });
-    console.log(token.token);
-    if (token.token == 'invalid password') {
+    console.log(response);
+    if (response.token == 'invalid password') {
       setError('Invalid password');
-    } else if (token.token == 'no user') {
+    } else if (response.token == 'no user') {
       setError('Username not found');
     } else {
-      setToken(token);
+      setToken(response.token);
+      setId(response.user_id);
+      window.location.reload();
     }
   };
 
+  console.log(user_id);
   if (token) {
     window.location.href = '/';
   }

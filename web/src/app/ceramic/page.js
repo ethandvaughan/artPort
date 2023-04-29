@@ -1,10 +1,12 @@
 'use client';
 import PopupButton from 'components/addPieceButton';
 import Piece from 'components/piece';
+import useToken from 'components/useToken';
 import { useEffect, useState } from 'react';
 
 const Ceramic = () => {
   const [data, setData] = useState(null);
+  const { token, setToken } = useToken();
 
   useEffect(() => {
     fetch('http://localhost:8080/ceramic')

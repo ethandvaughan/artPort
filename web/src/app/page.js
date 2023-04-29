@@ -1,6 +1,5 @@
 'use client';
 import Pieces from 'components/pieces';
-import Login from 'components/login';
 import useToken from 'components/useToken';
 import Welcome from 'components/welcome';
 
