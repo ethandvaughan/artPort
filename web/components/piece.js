@@ -24,7 +24,7 @@ const Piece = (props) => {
         <h3>By: {props.artist}</h3>
         <p>Medium: {props.category}</p>
         <button className='float-left' onClick={handleShowEdit}>
-          <img src='/edit.png' style={{ height: '20px', width: '20px' }} />
+          <img src='/edit.png' style={{ height: '18px', width: '18px' }} />
         </button>
         {showEdit && (
           <Edit
