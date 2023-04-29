@@ -275,7 +275,7 @@ func main() {
 		c.Data(http.StatusCreated, "application/json", json)
 	})
 
-	router.POST("/pieces", func(c *gin.Context) {
+	router.POST("/piece", func(c *gin.Context) {
 		var piece Piece
 		if err := c.ShouldBindJSON(&piece); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -308,7 +308,26 @@ func main() {
 		c.Data(http.StatusCreated, "text/plain", []byte(res))
 	})
 
-	router.DELETE("/pieces/:id", func(c *gin.Context) {
+	router.PUT("/piece/:id", func(c *gin.Context) {
+		var piece Piece
+		if err := c.ShouldBindJSON(&piece); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		res, err := alterPiece(db, piece)
+		if err != nil {
+			log.Fatalf("Error altering piece: %v", err)
+		}
+		json, err := json.Marshal(res)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		c.Data(http.StatusCreated, "application/json", json)
+
+	})
+
+	router.DELETE("/piece/:id", func(c *gin.Context) {
 		id := c.Param("id")
 		_, err := deletePieceById(db, id, sess)
 		if err != nil {
@@ -456,11 +475,19 @@ func postImages(uploader *s3manager.Uploader, image *multipart.FileHeader) (stri
 	return result.Location, nil
 }
 
+func alterPiece(db *sql.DB, piece Piece) (Piece, error) {
+	_, err := db.Exec("UPDATE piece SET title=$1, artist=$2, glaze_description=$3, clay=$4, bisque_cone=$5, glaze_cone=$6, date=$7, category=$8, description=$9, size=$10 WHERE id=$11", piece.Title, piece.Artist, piece.Glaze_Description, piece.Clay, piece.Bisque_Cone, piece.Glaze_Cone, piece.Date, piece.Category, piece.Description, piece.Size, piece.ID)
+	if err != nil {
+		log.Fatalf("Error updating piece: %v", err)
+	}
+	return piece, nil
+}
+
 func deletePieceById(db *sql.DB, id string, sess *session.Session) ([]Piece, error) {
 	svc := s3.New(sess)
 	resp, er := db.Query("SELECT * FROM piece WHERE id = $1", id)
 	if er != nil {
-		log.Fatalf("Error getting urls in delete: %v", er)
+		log.Fatalf("Error getting piece in delete: %v", er)
 	}
 	resp.Next()
 	var piece Piece
@@ -468,7 +495,7 @@ func deletePieceById(db *sql.DB, id string, sess *session.Session) ([]Piece, err
 	var imageTemp []uint8
 	scanErr := resp.Scan(&piece.ID, &piece.Title, &piece.Artist, &piece.Glaze_Description, &piece.Clay, &piece.Bisque_Cone, &piece.Glaze_Cone, &piece.Date, &piece.Category, &piece.Description, &piece.Size, &imageTemp, &piece.Artist_Id)
 	if scanErr != nil {
-		log.Fatalf("Error scanning piece for urls %v: ", scanErr)
+		fmt.Printf("Scann err: %v", scanErr)
 	}
 	for _, v := range bytes.Split(imageTemp, []byte(",")) {
 		urls = append(urls, strings.Trim(string(bytes.TrimSpace(v)), "{}"))
@@ -591,9 +618,7 @@ func GenerateToken(artist *Artist) (string, error) {
 func cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 		if c.Request.Method == "OPTIONS" {
