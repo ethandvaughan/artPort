@@ -33,6 +33,7 @@ const Ceramic = () => {
               artist={artwork.artist}
               category={artwork.category}
               images={artwork.images}
+              artwork={artwork}
             />
           ))
         ) : (
