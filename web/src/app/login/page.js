@@ -32,7 +32,6 @@ export default function Login() {
       username,
       password,
     });
-    console.log(response);
     if (response.token == 'invalid password') {
       setError('Invalid password');
     } else if (response.token == 'no user') {
